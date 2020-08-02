@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, UpdateProfileForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Follows
 
 CURR_USER_KEY = "curr_user"
 
@@ -117,7 +117,6 @@ def logout():
     return redirect('/login')
 
 
-
 ##############################################################################
 # General user routes:
 
@@ -213,7 +212,7 @@ def stop_following(follow_id):
 def profile():
     """Update profile for current user."""
     user = User.query.get_or_404(session[CURR_USER_KEY])
-    
+
     form = UpdateProfileForm(obj=user)
 
     if form.validate_on_submit():
@@ -225,7 +224,7 @@ def profile():
             user.image_url = form.image_url.data or '/static/images/default-pic.png'
             user.header_image_url = form.header_image_url.data or '/static/images/warbler-hero.jpg'
             user.bio = form.bio.data
-        
+
             db.session.add(user)
             db.session.commit()
             return redirect(url_for('users_show', user_id=user.id))
@@ -318,8 +317,11 @@ def homepage():
     """
 
     if g.user:
+        following_ids = [u.id for u in g.user.following] + [g.user.id]
+
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(following_ids))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
