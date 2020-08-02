@@ -1,10 +1,10 @@
 import os
 
-from flask import Flask, render_template, request, flash, redirect, session, g
+from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, UpdateProfileForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -212,8 +212,32 @@ def stop_following(follow_id):
 @app.route('/users/profile', methods=["GET", "POST"])
 def profile():
     """Update profile for current user."""
+    user = User.query.get_or_404(session[CURR_USER_KEY])
+    
+    form = UpdateProfileForm(obj=user)
 
-    # IMPLEMENT THIS
+    if form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        if User.authenticate(username, password):
+            user.username = username
+            user.email = form.email.data
+            user.image_url = form.image_url.data or '/static/images/default-pic.png'
+            user.header_image_url = form.header_image_url.data or '/static/images/warbler-hero.jpg'
+            user.bio = form.bio.data
+        
+            db.session.add(user)
+            db.session.commit()
+            return redirect(url_for('users_show', user_id=user.id))
+        else:
+            # form.password.errors.append('Wrong password')
+            flash('Wrong password', 'danger')
+    # Hide urls if they are the default ones
+    if form.image_url.data == '/static/images/default-pic.png':
+        form.image_url.data = ''
+    if form.header_image_url.data == '/static/images/warbler-hero.jpg':
+        form.header_image_url.data = ''
+    return render_template('users/edit.html', form=form, user_id=user.id)
 
 
 @app.route('/users/delete', methods=["POST"])
