@@ -3,6 +3,7 @@
 #
 # FLASK_ENV=production python -m unittest test_message_views.py
 
+from app import app, CURR_USER_KEY
 import os
 from unittest import TestCase
 
@@ -15,7 +16,6 @@ from models import db, connect_db, Message, User
 os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
 # Now we can import app
-from app import app, CURR_USER_KEY
 
 
 # Create our tables (we do this here, so we only create the tables
@@ -41,7 +41,7 @@ class MessageViewTestCase(TestCase):
         self.testuser = User.signup(username="testuser",
                                     email="test@test.com",
                                     password="testuser",
-           s                         image_url=None)
+                                    image_url=None)
 
         db.session.commit()
 
